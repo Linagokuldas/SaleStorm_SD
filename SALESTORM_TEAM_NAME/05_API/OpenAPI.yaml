@@ -1,0 +1,275 @@
+openapi: 3.0.3
+
+info:
+  title: SALESTORM E-Commerce API
+  description: APIs for flash-sale product, inventory, payment and order management.
+  version: 1.0.0
+
+servers:
+  - url: https://api.salestorm.example.com
+
+paths:
+
+  /api/products:
+    get:
+      summary: Get products
+      tags:
+        - Products
+      responses:
+        '200':
+          description: Products retrieved successfully
+
+  /api/products/{productId}:
+    get:
+      summary: Get product details
+      tags:
+        - Products
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product details
+        '404':
+          description: Product not found
+
+  /api/inventory/{productId}:
+    get:
+      summary: Check inventory
+      tags:
+        - Inventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Inventory details
+        '404':
+          description: Product or inventory not found
+
+  /api/inventory/reservations:
+    post:
+      summary: Reserve inventory
+      tags:
+        - Inventory
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationRequest'
+      responses:
+        '201':
+          description: Inventory reserved
+        '409':
+          description: Insufficient stock or reservation conflict
+
+  /api/inventory/reservations/{reservationId}:
+    delete:
+      summary: Release reservation
+      tags:
+        - Inventory
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reservation released
+        '404':
+          description: Reservation not found
+
+  /api/checkout:
+    post:
+      summary: Start checkout
+      tags:
+        - Checkout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '201':
+          description: Checkout initiated
+
+  /api/payments:
+    post:
+      summary: Create payment
+      tags:
+        - Payments
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '201':
+          description: Payment initiated
+        '409':
+          description: Duplicate payment request
+
+  /api/payments/{paymentId}:
+    get:
+      summary: Get payment status
+      tags:
+        - Payments
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment status
+        '404':
+          description: Payment not found
+
+  /api/orders:
+    post:
+      summary: Create order
+      tags:
+        - Orders
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Order created
+
+  /api/orders/{orderId}:
+    get:
+      summary: Get order
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order details
+        '404':
+          description: Order not found
+
+  /api/customers/{customerId}/orders:
+    get:
+      summary: Get customer orders
+      tags:
+        - Orders
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer orders
+
+  /api/orders/{orderId}/cancel:
+    post:
+      summary: Cancel order
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order cancelled
+        '409':
+          description: Order cannot be cancelled
+
+components:
+
+  schemas:
+
+    ReservationRequest:
+      type: object
+      required:
+        - productId
+        - customerId
+        - quantity
+        - idempotencyKey
+      properties:
+        productId:
+          type: string
+        customerId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        idempotencyKey:
+          type: string
+
+    CheckoutRequest:
+      type: object
+      required:
+        - customerId
+        - reservationId
+      properties:
+        customerId:
+          type: string
+        reservationId:
+          type: string
+
+    PaymentRequest:
+      type: object
+      required:
+        - orderId
+        - amount
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+
+    OrderRequest:
+      type: object
+      required:
+        - customerId
+        - reservationId
+      properties:
+        customerId:
+          type: string
+        reservationId:
+          type: string
